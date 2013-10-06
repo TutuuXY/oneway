@@ -77,15 +77,6 @@ public class Player extends oneway.sim.Player
 
     
 
-
-
-    private boolean indicator_right = true;
-    private MovingCar[] movingCars;
-    private Parking[] left;
-    private Parking[] right;
-    private boolean[] llights;
-    private boolean[] rlights;
-
     public void setLights(MovingCar[] movingCars,
                           Parking[] left,
                           Parking[] right,
@@ -99,6 +90,7 @@ public class Player extends oneway.sim.Player
         this.rlights = rlights;
 
         OppositeMovements();
+		avoidCollissionAndOverflow();
 
 		//Change the indicator once changeIndicatorTicks ticks have passed
 		if(timer%changeIndicatorTicks == 0){
@@ -114,7 +106,7 @@ public class Player extends oneway.sim.Player
         MovingCar first_one = null; // first car in same direction as indicator
 
         for (MovingCar car : movingCars) {
-            if (indicator_right) {
+            if (indicator) {
                 if (car.dir < 0) // if opposite direction?
                     v.add(car);
                 else { // same direction as indicator, then compare to get the first car
@@ -134,7 +126,7 @@ public class Player extends oneway.sim.Player
         // take care of the cars in parking lots
         // create fake instances
         // regard the parking lots as part of the road, with the location as the nblocks th block in the corresponding segment
-        if (indicator_right) {
+        if (indicator) {
             for (int i=0; i<left.length; i++)
                 v.add( new MovingCar(i-1, nblocks, -1, 0) );
         } else {
@@ -153,7 +145,7 @@ public class Player extends oneway.sim.Player
             }
         }
 
-        if (indicator_right) { // hard to write general codes for both cases. just write two versions of codes of the same functionalities
+        if (indicator) { // hard to write general codes for both cases. just write two versions of codes of the same functionalities
             for (MovingCar car : v) {
                 // need to rewrite a lot here
             }
@@ -186,55 +178,85 @@ public class Player extends oneway.sim.Player
 	
 	
 	//Modify the lights to avoid overflow when the indicator changes
-	private void avoidOverflow(){
+	private void avoidCollissionAndOverflow(){
 	
-		//If the indicator points right; implement later
+	
 		for(int seg = 0;seg<nsegments;seg++){
 			
 			
-			//If there is enough time send a car to the next parking lot, but the car will have to stop at that parking lot, make sure
-			//the parking lot the car is being sent to does not overflow
-			if(indicator&&seg<nsegments-1&&(timer&changeIndicatorTicks)<=(nblocks[seg]+nblocks[seg+1])){
+			//Ensure parking lot p_(seg+1) does not overflow 
+			//If there is not enough time for a car to pass the parking lot betewen seg and seg+1
+			if(seg<nsegments-1&&(changeIndicatorTicks-(timer&changeIndicatorTicks)) <= nblocks[seg]+nblocks[seg+1]){
 			
-				//Count of the number of cars on the segment to the right of the light
-				int carsSentRight = 0;
+				//Cars moving to parking lot p_(seg+1) from the right
+				int carsRight = 0;
 				
-				//Count of the number of cars to the right of the parking lot to the right which will reach the parking lot to the right
-				//before or just as the next car is sent to the right
-				int carsSentLeft = 0;
+				//Cars moving to parking lot p_(seg+1) from the left
+				int carsLeft = 0;
 			
-				//Determine the number of cars on the segment to the right and left of the parking lot to the right of the light
+
+				for(int car = 0;car<movingCars.length;car++){
+					if(movingCars[car].segment==seg&&movingCars[car].dir==1)
+						carsRight++;
+						
+					if(movingCars[car].segment==seg+1&&movingCars[car].dir==-1)
+						carsLeft++;
+				}
+				
+				
+
+				
+				//If there is not enough room to accomodate more cars at parking lost seg+1, do not send more cars to that parking lot
+				if(carsRight+carsLeft>=capacity[seg+1]-left[seg+1].size()-right[seg+1].size()){
+					if(indicator)
+						rlights[seg] = false;
+						
+					if(!indicator)
+						llights[seg+1]= false;
+				}
+			
+			}
+			
+			
+			//Ensure parking lot p_(seg+1) does not overflow while indicator points left
+			//If there is not enough time for a car to pass the parking lot betewen seg and seg+1
+			if(indicator&&seg<nsegments-1&&(changeIndicatorTicks-(timer&changeIndicatorTicks)) <= nblocks[seg]+nblocks[seg+1]){
+			
+				//Cars moving to parking lot p_(seg+1) from the right
+				int carsRight = 0;
+				
+				//Cars moving to parking lot p_(seg+1) from the left
+				int carsLeft = 0;
+			
 				for(int car = 0;car<movingCars.length;car++){
 					if(movingCars[car].segment==seg)
-						carsSentLeft++;
+						carsRight++;
 						
 					if(movingCars[car].segment==seg+1)
-						carsSentRight++;
+						carsLeft++;
 				}
 				
-				System.out.println("Cars sent to the right for segment " + seg + ":" + carsSentRight + "\n");
-				
-
-				
-				
-				
-				//If the number of cars moving towards the next parking lot on the right is greater than or equal to the space left in the parking lot
-				if(carsSentRight+carsSentLeft>=capacity[seg+1]-(left[seg+1].size()+right[seg+1].size())){
-					//Do not let any more cars pass to the next parking lot on the right
+				//If there is not enough room to accomodate more cars at parking lost seg+1, do not send more cars to that parking lot
+				if(carsRight+carsLeft>=capacity[seg+1]-left[seg+1].size()-right[seg+1].size())
+					rlights[seg] =false;
+			
+			}
+			
+			
+			//If the time left before the indicator change is less than the length of segment seg
+			System.out.println("Time left before change:" + (changeIndicatorTicks-(timer&changeIndicatorTicks)) + "\n");
+			if((changeIndicatorTicks-(timer%changeIndicatorTicks)) < nblocks[seg]){
+			
+				if(indicator)
+					rlights[seg] = false;
+					
+				if(!indicator)
 					llights[seg] = false;
-					System.out.println("Switching left light off at " + seg + " to avoid overflow when the indicator switches\n");
-				}
-			
-			}
-			
-			
-			//If the time left before the indicator change is less than or equal to the segment length on the right side of the light
-			if(indicator&&(timer%changeIndicatorTicks) <= nblocks[seg]){
-			
-				llights[seg] = false;
 
 				
 			}
+			
+
 		}
 	}
 
