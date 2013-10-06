@@ -72,7 +72,12 @@ public class Player extends oneway.sim.Player
 
         //Change the indicator once changeIndicatorTicks ticks have passed
         if(timer%changeIndicatorTicks == 0){
-            changeIndicator();
+            //changeIndicator();
+        }
+
+        for (int i=0; i<llights.length; i++) {
+            llights[i] = true;
+            rlights[i] = true;
         }
 
         OppositeMovements();
@@ -81,6 +86,19 @@ public class Player extends oneway.sim.Player
 
         timer++;
     }
+
+
+    /*
+       
+       r0      r1      r2 
+       ->      ->      ->
+           seg0    seg1    seg2
+        | - - - | - - - | - - - |
+       p0      p1       p2     p3
+               <-      <-      <-
+               l0       l1     l2  
+
+       */
 
     private void OppositeMovements() 
     {
@@ -100,23 +118,46 @@ public class Player extends oneway.sim.Player
             }
         }
 
+        int left_parking_num = 0;
+        int right_parking_num = 0;
+
         // take care of the cars in parking lots
-        // create fake instances
-        // regard the parking lots as part of the road, with the location as the nblocks th block in the corresponding segment
         if (indicator) {
-            for (int i=0; i<right.length; i++)
-                for (int j=0; j<right[i].size(); j++)
-                    forward.add( new Car(true, i, nblocks) );
-            for (int i=0; i<left.length; i++)
-                for (int j=0; j<left[i].size(); j++)
-                    opposite.add( new Car(false, i, nblocks) );
+            if (right!=null)
+                for (int i=0; i<right.length; i++) {
+                    if (right[i]==null) break;
+
+                    right_parking_num += right[i].size();
+                    for (int j=0; j<right[i].size(); j++) 
+                        forward.add( new Car(true, i, nblocks) );
+                }
+            if (left!=null) 
+                for (int i=0; i<left.length; i++) {
+                    if (left[i]==null) break;
+                    left_parking_num += left[i].size();
+
+                    System.out.println(left[i].size()+"----------------------------------------------");
+                    for (int j=0; j<left[i].size(); j++)
+                        opposite.add( new Car(false, i, nblocks) );
+                }
         } else {
-            for (int i=0; i<right.length; i++)
-                for (int j=0; j<right[i].size(); j++)
-                    opposite.add( new Car(true, i, nblocks) );
-            for (int i=0; i<left.length; i++)
-                for (int j=0; j<left[i].size(); j++)
-                    forward.add( new Car(false, i, nblocks) );
+            if (right!=null)
+                for (int i=0; i<right.length; i++) {
+                    if (right[i]==null) break;
+
+                    right_parking_num += right[i].size();
+                    for (int j=0; j<right[i].size(); j++)
+                        opposite.add( new Car(true, i, nblocks) );
+                }
+            if (left!=null)
+                for (int i=0; i<left.length; i++) {
+                    if (left[i]==null) break;
+
+                    System.out.println(left[i].size()+"----------------------------------------------");
+                    left_parking_num += left[i].size();
+                    for (int j=0; j<left[i].size(); j++)
+                        forward.add( new Car(false, i, nblocks) );
+                }
         }
 
         Collections.sort( forward );
@@ -126,9 +167,16 @@ public class Player extends oneway.sim.Player
         int fstep = forward.get(0).steps;
 
         System.out.println("*************** forward cars******************");
+        System.out.println("In right parking lots " + right_parking_num );
+        System.out.println(forward.size() + " cars");
         for (Car c : forward)
             System.out.println(c.toString());
         System.out.println("*************** opposite cars*****************");
+        if (left == null || left[left.length-1]==null)  System.out.println("No car in left round startpoint");
+            else                                        System.out.println(left[left.length-1].size() + " cars in left round startpoint");
+
+        System.out.println("In left parking lots " + left_parking_num );
+        System.out.println(opposite.size() + " cars");
         for (Car c : opposite)
             System.out.println(c.toString());
         System.out.println("**********************************************");
@@ -157,7 +205,6 @@ public class Player extends oneway.sim.Player
             }
         }
         */
-
     }
 
     //Modify the lights to avoid overflow when the indicator changes
@@ -222,14 +269,6 @@ public class Player extends oneway.sim.Player
                 if(!indicator)
                     llights[seg] = false;
             }
-        }
-    }
-
-    private boolean faster_than(MovingCar a, MovingCar b) {
-        if (a.dir > 0) {
-            return (a.segment > b.segment) || (a.segment==b.segment && a.block > b.block);
-        } else {
-            return (a.segment < b.segment) || (a.segment==b.segment && a.block < b.block);
         }
     }
 
