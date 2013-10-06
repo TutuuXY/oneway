@@ -5,6 +5,7 @@ import oneway.sim.Parking;
 
 import java.util.*;
 
+
 public class Player extends oneway.sim.Player
 {
     // if the parking lot is almost full
@@ -21,80 +22,108 @@ public class Player extends oneway.sim.Player
     }
 
 
+    private boolean indicator_right = true;
+    private MovingCar[] movingCars;
+    private Parking[] left;
+    private Parking[] right;
+    private boolean[] llights;
+    private boolean[] rlights;
+
     public void setLights(MovingCar[] movingCars,
                           Parking[] left,
                           Parking[] right,
                           boolean[] llights,
                           boolean[] rlights)
     {
+        this.movingCars = movingCars;
+        this.left = left;
+        this.right = right;
+        this.llights = llights;
+        this.rlights = rlights;
 
+        OppositeMovements();
 
-    /*
-    public final int segment;
-    public final int block;
-
-    // Right bound: 1
-    // Left bound: -1
-    public final int dir;
-    public final int startTime;
-    */
-
-
-
-
-        for (int i = 0; i != nsegments; ++i) {
-            llights[i] = false;
-            rlights[i] = false;
-        }
-
-        boolean[] indanger = new boolean[nsegments+1];
-        
-        // find out almost full parking lot
-        for (int i = 1; i != nsegments; ++i) {
-            if (left[i].size() + right[i].size() 
-                > capacity[i] * AlmostFull) {
-                indanger[i] = true;
-            }            
-        }
-
-        for (int i = 0; i != nsegments; ++i) {
-            // if right bound has car
-            // and the next parking lot is not in danger
-            if (right[i].size() > 0 &&
-                !indanger[i+1] &&
-                !hasTraffic(movingCars, i, -1)) {
-                rlights[i] = true;
-            }
-            
-            if (left[i+1].size() > 0 &&
-                !indanger[i] &&
-                !hasTraffic(movingCars, i, 1)) {
-                llights[i] = true;
-            }
-
-            // if both left and right is on
-            // find which dir is in more danger
-            if (rlights[i] && llights[i]) {
-                double lratio = 1.0 * (left[i+1].size() + right[i+1].size()) / capacity[i+1];
-                double rratio = 1.0 * (left[i].size() + right[i].size()) / capacity[i];
-                if (lratio > rratio)
-                    rlights[i] = false;
-                else
-                    llights[i] = false;
-            }
-        }
     }
 
+    private void OppositeMovements() 
+    {
+        Vector<MovingCar> v = new Vector<MovingCar>(); // to store all cars in opposite direction as indicator
+        MovingCar first_one = null; // first car in same direction as indicator
 
-    // check if the segment has traffic
-    private boolean hasTraffic(MovingCar[] cars, int seg, int dir) {
-        for (MovingCar car : cars) {
-            if (car.segment == seg && car.dir == dir)
-                return true;
+        for (MovingCar car : movingCars) {
+            if (indicator_right) {
+                if (car.dir < 0) // if opposite direction?
+                    v.add(car);
+                else { // same direction as indicator, then compare to get the first car
+                    if (null==first_one) first_one = car;
+                    else                 first_one = faster_than(first_one, car) ? first_one:car;
+                }
+            } else { // same thing here, for left bound
+                if (car.dir > 0)
+                    v.add(car);
+                else {
+                    if (null==first_one) first_one = car;
+                    else                 first_one = faster_than(first_one, car) ? first_one:car;
+                }
+            }
         }
-        return false;
+
+        // take care of the cars in parking lots
+        // create fake instances
+        // regard the parking lots as part of the road, with the location as the nblocks th block in the corresponding segment
+        if (indicator_right) {
+            for (int i=0; i<left.length; i++)
+                v.add( new MovingCar(i-1, nblocks, -1, 0) );
+        } else {
+            for (int i=0; i<right.length; i++)
+                v.add( new MovingCar(i-1, nblocks, 1, 0) );
+        }
+
+        // sort the cars in opposite direction
+        for (int i=0; i<v.size()-1; i++) {
+            for (int j=i+1; j<v.size(); j++) {
+                if ( fast_than( v.get(j), v.get(i) ) ) {
+                    MovingCar temp = v.get(j);
+                    v.set(j, v.get(i));
+                    v.set(i, temp);
+                }
+            }
+        }
+
+        if (indicator_right) { // hard to write general codes for both cases. just write two versions of codes of the same functionalities
+            for (MovingCar car : v) {
+                // need to rewrite a lot here
+            }
+        } else {
+            for (MovingCar car : v) {
+                // need to rewrite a lot here
+            }
+        }
+
+
+
+        /*
+            public final int segment;
+            public final int block;
+
+            // Right bound: 1
+            // Left bound: -1
+
+            public final int dir;
+            public final int startTime;
+
+            public class Parking extends LinkedList<Integer>
+        */
+
     }
 
+    private boolean faster_than(MovingCar a, MovingCar b) {
+        if (a.dir > 0) {
+            return (a.segment > b.segment) || (a.segment==b.segment && a.block > b.block);
+        } else {
+            return (a.segment < b.segment) || (a.segment==b.segment && a.block < b.block);
+        }
+    }
 
     private int nsegments;
     private int[] nblocks;
