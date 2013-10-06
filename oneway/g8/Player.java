@@ -100,6 +100,12 @@ public class Player extends oneway.sim.Player
 
         OppositeMovements();
 
+		//Change the indicator once changeIndicatorTicks ticks have passed
+		if(timer%changeIndicatorTicks == 0){
+				changeIndicator();
+		}
+		
+		timer++;
     }
 
     private void OppositeMovements() 
@@ -174,25 +180,7 @@ public class Player extends oneway.sim.Player
 
     }
 	
-		this.llights = llights;
-		this.rlights = rlights;
-		this.movingCars = movingCars;
-		this.left = left;
-		this.right = right;
-	
-
-	
-		//Change the indicator once changeIndicatorTicks ticks have passed
-		if(timer%changeIndicatorTicks == 0){
-				changeIndicator();
-		}
 		
-		timer++;
-	
-		
-       
-    }
-
 
 
 	
