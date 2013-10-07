@@ -88,18 +88,7 @@ public class Player extends oneway.sim.Player
     }
 
 
-    /*
-       
-       r0      r1      r2 
-       ->      ->      ->
-           seg0    seg1    seg2
-        | - - - | - - - | - - - |
-       p0      p1       p2     p3
-               <-      <-      <-
-               l0       l1     l2  
-
-       */
-
+    
     private void OppositeMovements() 
     {
         Vector<Car> opposite = new Vector<Car>( ); // to store all cars in opposite direction as indicator
@@ -125,25 +114,24 @@ public class Player extends oneway.sim.Player
         if (indicator) {
             if (right!=null)
                 for (int i=0; i<right.length; i++) {
-                    if (right[i]==null) break;
+                    if (right[i]==null) continue;
 
                     right_parking_num += right[i].size();
                     for (int j=0; j<right[i].size(); j++) 
                         forward.add( new Car(true, i, nblocks) );
                 }
-            if (left!=null) 
+            if (left!=null)
                 for (int i=0; i<left.length; i++) {
-                    if (left[i]==null) break;
+                    if (left[i]==null) continue;
                     left_parking_num += left[i].size();
 
-                    System.out.println(left[i].size()+"----------------------------------------------");
                     for (int j=0; j<left[i].size(); j++)
                         opposite.add( new Car(false, i, nblocks) );
                 }
         } else {
             if (right!=null)
                 for (int i=0; i<right.length; i++) {
-                    if (right[i]==null) break;
+                    if (right[i]==null) continue;
 
                     right_parking_num += right[i].size();
                     for (int j=0; j<right[i].size(); j++)
@@ -151,9 +139,8 @@ public class Player extends oneway.sim.Player
                 }
             if (left!=null)
                 for (int i=0; i<left.length; i++) {
-                    if (left[i]==null) break;
+                    if (left[i]==null) continue;
 
-                    System.out.println(left[i].size()+"----------------------------------------------");
                     left_parking_num += left[i].size();
                     for (int j=0; j<left[i].size(); j++)
                         forward.add( new Car(false, i, nblocks) );
@@ -163,48 +150,74 @@ public class Player extends oneway.sim.Player
         Collections.sort( forward );
         Collections.sort( opposite );
 
-        if (forward.size() == 0) return ;
-        int fstep = forward.get(0).steps;
+        if (forward.size() == 0 || opposite.size() == 0) return ; // if only have cars in one direction, do nothing, just return
 
         System.out.println("*************** forward cars******************");
-        System.out.println("In right parking lots " + right_parking_num );
-        System.out.println(forward.size() + " cars");
+        System.out.println(forward.size() + " cars moving forward");
         for (Car c : forward)
             System.out.println(c.toString());
         System.out.println("*************** opposite cars*****************");
-        if (left == null || left[left.length-1]==null)  System.out.println("No car in left round startpoint");
-            else                                        System.out.println(left[left.length-1].size() + " cars in left round startpoint");
-
-        System.out.println("In left parking lots " + left_parking_num );
-        System.out.println(opposite.size() + " cars");
+        System.out.println(opposite.size() + " cars moving opposite");
         for (Car c : opposite)
             System.out.println(c.toString());
         System.out.println("**********************************************");
 
+        int fstep = forward.get(0).steps; // get the first car in the forward direction
+        oneway.sim.Parking[] L = left.clone();
+        oneway.sim.Parking[] R = right.clone();
+
         /*
-        // sort the cars in opposite direction
-        for (int i=0; i<v.size()-1; i++) {
-            for (int j=i+1; j<v.size(); j++) {
-                if ( fast_than( v.get(j), v.get(i) ) ) {
-                    MovingCar temp = v.get(j);
-                    v.set(j, v.get(i));
-                    v.set(i, temp);
+           r0      r1      r2 
+           ->      ->      ->
+               seg0    seg1    seg2
+            | - - - | - - - | - - - |
+           p0      p1       p2     p3
+                   <-      <-      <-
+                   l0       l1     l2  
+           */
+
+
+        if (indicator) {
+            for (int i=llights.length/2; i<llights.length; i++)
+                llights[i] = true;
+            for (Car c : opposite) {
+                int cstep = (fstep + c.steps) / 2; // collision steps
+                int cseg = cstep / nblocks[0]; // collision segment,FIXME right now all segments are regarded as same length
+                int latest_parking = cseg + 1;
+
+                for (int i=latest_parking; i<L.length; i++) {
+                    if (R[i].size() + L[i].size() < capacity[i]) {
+                        L[i].add(0);
+
+                        int car_seg = c.steps / nblocks[0];
+                        int car_blk = c.steps % nblocks[0];
+                        if (car_seg == i && car_blk == 0)
+                            llights[i-1] = false;
+                        break;
+                    }
+                }
+            }
+        } else {
+            for (int i=0; i<rlights.length/2; i++)
+                rlights[i] = true;
+            for (Car c : opposite) {
+                int cstep = (fstep + c.steps) / 2; // collision steps
+                int cseg = cstep / nblocks[0]; // collision segment,FIXME right now all segments are regarded as same length
+                int latest_parking = cseg;
+
+                for (int i=latest_parking; i>=0; i--) {
+                    if (R[i].size() + L[i].size() < capacity[i]) {
+                        R[i].add(0);
+
+                        int car_seg = c.steps / nblocks[0];
+                        int car_blk = c.steps % nblocks[0];
+                        if (car_seg == i && car_blk == 0)
+                            rlights[i] = false;
+                        break;
+                    }
                 }
             }
         }
-        */
-
-        /*
-        if (indicator) { // hard to write general codes for both cases. just write two versions of codes of the same functionalities
-            for (MovingCar car : v) {
-                // need to rewrite a lot here
-            }
-        } else {
-            for (MovingCar car : v) {
-                // need to rewrite a lot here
-            }
-        }
-        */
     }
 
     //Modify the lights to avoid overflow when the indicator changes

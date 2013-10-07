@@ -18,7 +18,7 @@ public class Car implements Comparable<Car> {
         int blks = 0;
         for (int i=0; i<seg; i++)
             blks += nblocks[i];
-        this.steps = blks + this.seg + 1 + this.blk+ 1;
+        this.steps = blks + this.blk;
     }
 
     public Car( boolean in_right_Parking, int ind, int[] nblocks ) {
@@ -29,7 +29,7 @@ public class Car implements Comparable<Car> {
         int blks = 0;
         for (int i=0; i<seg; i++)
             blks += nblocks[i];
-        this.steps = blks + this.seg + 1 + this.blk+ 1;
+        this.steps = blks + 1 + this.blk;
     }
     
     public int compareTo(Car c) {
