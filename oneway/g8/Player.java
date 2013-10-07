@@ -3,6 +3,7 @@ package oneway.g8;
 import oneway.sim.MovingCar;
 import oneway.sim.Parking;
 import java.util.*;
+import java.lang.*;
 
 public class Player extends oneway.sim.Player
 {
@@ -174,6 +175,13 @@ public class Player extends oneway.sim.Player
         int fstep = forward.get(0).steps; // get the first car in the forward direction
         oneway.sim.Parking[] L = left.clone();
         oneway.sim.Parking[] R = right.clone();
+
+        for (int i=0; i<L.length; i++)
+            if (L[i] == null)
+                L[i] = new oneway.sim.Parking();
+        for (int i=0; i<R.length; i++)
+            if (R[i] == null)
+                R[i] = new oneway.sim.Parking();
 
         /*
            r0      r1      r2 
