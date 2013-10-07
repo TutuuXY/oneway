@@ -34,7 +34,7 @@ public class Player extends oneway.sim.Player
         this.nblocks = nblocks;
         this.capacity = capacity.clone();
 
-        indicator = false;
+        indicator = true;
         timer = 0;
     }
 
