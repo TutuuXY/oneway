@@ -18,7 +18,7 @@ public class Player extends oneway.sim.Player
     public int timer;
 
     //Number of ticks until the indicator should change
-    public int changeIndicatorTicks = 15;
+    public int changeIndicatorTicks = 30;
 
     private boolean[] llights;
     private boolean[] rlights;
@@ -37,11 +37,25 @@ public class Player extends oneway.sim.Player
         indicator = false;
         timer = 0;
     }
+	
+	
+	//Determine if all road segments are the same
+	public boolean sameLength(){
+	
+		for(int i= 1;i<nblocks.length;i++){
+		
+			if(nblocks[i-1]!=nblocks[i])
+				return false;
+		
+		
+		}
+		
+		return true;
+	}
 
     //Reverse the indicator and set the lights accordingly
-    public void changeIndicator(){
+    public void setLights(){
 
-        indicator = !indicator;
 
         //Change all of the lights to point in the direction of the indicator
         for(int i = 0;i<llights.length;i++){
@@ -71,30 +85,22 @@ public class Player extends oneway.sim.Player
         this.llights = llights;
         this.rlights = rlights;
 
-        for(int i = 0;i<llights.length;i++){
-            //The indicator points right
-            if(indicator){
-                llights[i] = false;
-                rlights[i] = true;
-            }
-
-            //The indicator points left
-            if (!indicator){
-                llights[i] = true;
-                rlights[i] = false;
-            }
-        }
-
-        //Change the indicator once changeIndicatorTicks ticks have passed
+		//Change the indicator once changeIndicatorTicks ticks have passed
         if(timer%changeIndicatorTicks == 0){
-            //changeIndicator();
+            indicator = !indicator;
         }
+		
+		
+		
+		setLights();
 
-        OppositeMovements();
+
+		if(sameLength())
+			OppositeMovements();
 
         print_lights();
 
-        //avoidCollissionAndOverflow();
+        avoidCollissionAndOverflow();
 
         timer++;
     }
@@ -108,7 +114,7 @@ public class Player extends oneway.sim.Player
         System.out.println("");
     }
 
-    private void OppositeMovements() 
+     private void OppositeMovements() 
     {
         Vector<Car> opposite = new Vector<Car>( ); // to store all cars in opposite direction as indicator
         Vector<Car> forward  = new Vector<Car>( );
@@ -338,9 +344,9 @@ public class Player extends oneway.sim.Player
                     rlights[seg] =false;
             }
 
-            //If the time left before the indicator change is less than the length of segment seg
+            //If the time left before the indicator change is less than or equal to	 the length of segment seg
             System.out.println("Time left before change:" + (changeIndicatorTicks-(timer&changeIndicatorTicks)) + "\n");
-            if((changeIndicatorTicks-(timer%changeIndicatorTicks)) < nblocks[seg]){
+            if((changeIndicatorTicks-(timer%changeIndicatorTicks)) <= nblocks[seg]){
                 if(indicator)
                     rlights[seg] = false;
 
