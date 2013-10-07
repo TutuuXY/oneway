@@ -195,13 +195,13 @@ public class Player extends oneway.sim.Player
                 int latest_parking = cseg + 1;
 
                 if (c.steps <= fstep) { // first forward car already passed and the current car is in parking lot
-                    System.out.println("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
                     int seg = c.steps / nblocks[0];
                     llights[seg - 1] = false;
                     continue;
                 }
 
                 for (int i=latest_parking; i<L.length; i++) {
+
                     if (R[i].size() + L[i].size() < capacity[i]) {
                         L[i].add(0);
 
@@ -212,6 +212,13 @@ public class Player extends oneway.sim.Player
                         break;
                     }
                 }
+            }
+
+            // control the left direction startpoint
+            int cstep = (fstep + nblocks[0] * nsegments + 1) / 2;
+            int cseg = cstep / nblocks[0];
+            if (cseg >= nsegments-1) {
+                llights[llights.length-1] = false;
             }
         } else {
             for (int i=0; i<rlights.length/2; i++)
@@ -238,6 +245,13 @@ public class Player extends oneway.sim.Player
                         break;
                     }
                 }
+            }
+
+            // control the right direction startpoint
+            int cstep = fstep / 2;
+            int cseg = cstep / nblocks[0];
+            if (cseg == 0) {
+                rlights[0] = false;
             }
         }
     }
