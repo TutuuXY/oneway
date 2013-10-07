@@ -34,7 +34,7 @@ public class Player extends oneway.sim.Player
         this.nblocks = nblocks;
         this.capacity = capacity.clone();
 
-        indicator = true;
+        indicator = false;
         timer = 0;
     }
 
@@ -47,14 +47,14 @@ public class Player extends oneway.sim.Player
         for(int i = 0;i<llights.length;i++){
             //The indicator points right
             if(indicator){
-                llights[i] = true;
-                rlights[i] = false;
+                llights[i] = false;
+                rlights[i] = true;
             }
 
             //The indicator points left
             if (!indicator){
-                llights[i] = false;
-                rlights[i] = true;
+                llights[i] = true;
+                rlights[i] = false;
             }
         }
     }
@@ -88,11 +88,6 @@ public class Player extends oneway.sim.Player
         //Change the indicator once changeIndicatorTicks ticks have passed
         if(timer%changeIndicatorTicks == 0){
             //changeIndicator();
-        }
-
-        for (int i=0; i<llights.length; i++) {
-            llights[i] = true;
-            rlights[i] = true;
         }
 
         OppositeMovements();
@@ -176,7 +171,13 @@ public class Player extends oneway.sim.Player
         Collections.sort( forward );
         Collections.sort( opposite );
 
-        if (forward.size() == 0 || opposite.size() == 0) return ; // if only have cars in one direction, do nothing, just return
+        if (forward.size() == 0 || opposite.size() == 0) { // if only have cars in one direction, set all lights green
+            for (int i=0; i<llights.length; i++) {
+                llights[i] = true;
+                rlights[i] = true;
+            }
+            return ; 
+        }
 
         
         int fstep = forward.get(0).steps; // get the first car in the forward direction
@@ -257,8 +258,6 @@ public class Player extends oneway.sim.Player
                         int car_seg = c.steps / nblocks[0];
                         int car_blk = c.steps % nblocks[0];
 
-//                        System.out.println("car_seg = " + car_seg);
-//                        System.out.println("car_blk = " + car_blk);
                         if (car_seg == i-1 && car_blk == nblocks[0]-1)
                             rlights[i] = false;
                         break;
