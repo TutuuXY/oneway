@@ -8,6 +8,7 @@ public class Car implements Comparable<Car> {
     public int seg;
     public int blk;
     public int time;
+    public int latest_parking;
 
     public Car(int seg, int blk,
                      int d, int time, int[] nblocks) {
@@ -41,6 +42,6 @@ public class Car implements Comparable<Car> {
     }
 
     public String toString() {
-        return "seg=" + seg + " blk=" + blk + " dir=" + d + " stime=" + time + " steps=" + steps;
+        return "seg=" + seg + " blk=" + blk + " dir=" + d + " stime=" + time + " steps=" + steps + " latest_parking=" + latest_parking;
     }
 }

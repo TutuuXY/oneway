@@ -71,6 +71,20 @@ public class Player extends oneway.sim.Player
         this.llights = llights;
         this.rlights = rlights;
 
+        for(int i = 0;i<llights.length;i++){
+            //The indicator points right
+            if(indicator){
+                llights[i] = false;
+                rlights[i] = true;
+            }
+
+            //The indicator points left
+            if (!indicator){
+                llights[i] = true;
+                rlights[i] = false;
+            }
+        }
+
         //Change the indicator once changeIndicatorTicks ticks have passed
         if(timer%changeIndicatorTicks == 0){
             //changeIndicator();
@@ -144,8 +158,10 @@ public class Player extends oneway.sim.Player
                     if (right[i]==null) continue;
 
                     right_parking_num += right[i].size();
-                    for (int j=0; j<right[i].size(); j++)
+                    for (int j=0; j<right[i].size(); j++) {
                         opposite.add( new Car(true, i, nblocks) );
+                        opposite.get( opposite.size()-1 ).steps--;
+                    }
                 }
             if (left!=null)
                 for (int i=0; i<left.length; i++) {
@@ -162,16 +178,7 @@ public class Player extends oneway.sim.Player
 
         if (forward.size() == 0 || opposite.size() == 0) return ; // if only have cars in one direction, do nothing, just return
 
-        System.out.println("*************** forward cars******************");
-        System.out.println(forward.size() + " cars moving forward");
-        for (Car c : forward)
-            System.out.println(c.toString());
-        System.out.println("*************** opposite cars*****************");
-        System.out.println(opposite.size() + " cars moving opposite");
-        for (Car c : opposite)
-            System.out.println(c.toString());
-        System.out.println("**********************************************");
-
+        
         int fstep = forward.get(0).steps; // get the first car in the forward direction
         oneway.sim.Parking[] L = left.clone();
         oneway.sim.Parking[] R = right.clone();
@@ -201,6 +208,7 @@ public class Player extends oneway.sim.Player
                 int cstep = (fstep + c.steps) / 2; // collision steps
                 int cseg = cstep / nblocks[0]; // collision segment,FIXME right now all segments are regarded as same length
                 int latest_parking = cseg + 1;
+                c.latest_parking = latest_parking;
 
                 if (c.steps <= fstep) { // first forward car already passed and the current car is in parking lot
                     int seg = c.steps / nblocks[0];
@@ -226,19 +234,19 @@ public class Player extends oneway.sim.Player
             int cstep = (fstep + nblocks[0] * nsegments + 1) / 2;
             int cseg = cstep / nblocks[0];
             if (cseg >= nsegments-1) {
-                llights[llights.length-1] = false;
-            }
+                llights[llights.length-1] = false; }
         } else {
             for (int i=0; i<rlights.length/2; i++)
                 rlights[i] = true;
             for (Car c : opposite) {
-                int cstep = (fstep + c.steps) / 2; // collision steps
+                int cstep = (fstep + c.steps + 1) / 2; // collision steps
                 int cseg = cstep / nblocks[0]; // collision segment,FIXME right now all segments are regarded as same length
                 int latest_parking = cseg;
+                c.latest_parking = latest_parking;
 
                 if (c.steps >= fstep) { // first forward car already passed and the current car is in parking lot
                     int seg = c.steps / nblocks[0];
-                    rlights[seg] = false;
+                    rlights[seg+1] = false;
                     continue;
                 }
 
@@ -248,7 +256,10 @@ public class Player extends oneway.sim.Player
 
                         int car_seg = c.steps / nblocks[0];
                         int car_blk = c.steps % nblocks[0];
-                        if (car_seg == i && car_blk == 0)
+
+//                        System.out.println("car_seg = " + car_seg);
+//                        System.out.println("car_blk = " + car_blk);
+                        if (car_seg == i-1 && car_blk == nblocks[0]-1)
                             rlights[i] = false;
                         break;
                     }
@@ -262,6 +273,17 @@ public class Player extends oneway.sim.Player
                 rlights[0] = false;
             }
         }
+
+        System.out.println("*************** forward cars******************");
+        System.out.println(forward.size() + " cars moving forward");
+        for (Car c : forward)
+            System.out.println(c.toString());
+        System.out.println("*************** opposite cars*****************");
+        System.out.println(opposite.size() + " cars moving opposite");
+        for (Car c : opposite)
+            System.out.println(c.toString());
+        System.out.println("**********************************************");
+
     }
 
     //Modify the lights to avoid overflow when the indicator changes
