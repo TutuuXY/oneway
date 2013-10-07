@@ -51,7 +51,7 @@ public class Player extends oneway.sim.Player
             }
 
             //The indicator points left
-            if(!indicator){
+            if (!indicator){
                 llights[i] = false;
                 rlights[i] = true;
             }
@@ -82,13 +82,22 @@ public class Player extends oneway.sim.Player
 
         OppositeMovements();
 
+        print_lights();
+
         //avoidCollissionAndOverflow();
 
         timer++;
     }
 
+    private void print_lights() {
+        for (int i=0; i<rlights.length; i++)
+            System.out.print(((rlights[i])?0:1) + " ");
+        System.out.print("\n  ");
+        for (int i=0; i<llights.length; i++)
+            System.out.print(((llights[i])?0:1) + " ");
+        System.out.println("");
+    }
 
-    
     private void OppositeMovements() 
     {
         Vector<Car> opposite = new Vector<Car>( ); // to store all cars in opposite direction as indicator
@@ -185,6 +194,13 @@ public class Player extends oneway.sim.Player
                 int cseg = cstep / nblocks[0]; // collision segment,FIXME right now all segments are regarded as same length
                 int latest_parking = cseg + 1;
 
+                if (c.steps <= fstep) { // first forward car already passed and the current car is in parking lot
+                    System.out.println("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
+                    int seg = c.steps / nblocks[0];
+                    llights[seg - 1] = false;
+                    continue;
+                }
+
                 for (int i=latest_parking; i<L.length; i++) {
                     if (R[i].size() + L[i].size() < capacity[i]) {
                         L[i].add(0);
@@ -204,6 +220,12 @@ public class Player extends oneway.sim.Player
                 int cstep = (fstep + c.steps) / 2; // collision steps
                 int cseg = cstep / nblocks[0]; // collision segment,FIXME right now all segments are regarded as same length
                 int latest_parking = cseg;
+
+                if (c.steps >= fstep) { // first forward car already passed and the current car is in parking lot
+                    int seg = c.steps / nblocks[0];
+                    rlights[seg] = false;
+                    continue;
+                }
 
                 for (int i=latest_parking; i>=0; i--) {
                     if (R[i].size() + L[i].size() < capacity[i]) {
