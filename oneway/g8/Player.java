@@ -25,6 +25,7 @@ public class Player extends oneway.sim.Player
     private Parking[] right;
     private Parking[] left;
     MovingCar[] movingCars;
+    private int nblocks_sum;
 
     public Player() {}
 
@@ -34,24 +35,24 @@ public class Player extends oneway.sim.Player
         this.nblocks = nblocks;
         this.capacity = capacity.clone();
 
-        indicator = true;
+        nblocks_sum = 0;
+        for (int i=0; i<nblocks.length; i++)
+            nblocks_sum += nblocks[i];
+
+        indicator = false;
         timer = 0;
     }
-	
-	
-	//Determine if all road segments are the same
-	public boolean sameLength(){
-	
-		for(int i= 1;i<nblocks.length;i++){
-		
-			if(nblocks[i-1]!=nblocks[i])
-				return false;
-		
-		
-		}
-		
-		return true;
-	}
+
+
+    //Determine if all road segments are the same
+    public boolean sameLength(){
+        for(int i= 1;i<nblocks.length;i++){
+            if(nblocks[i-1]!=nblocks[i])
+                return false;
+        }
+
+        return true;
+    }
 
     //Reverse the indicator and set the lights accordingly
     public void setLights(){
@@ -85,22 +86,20 @@ public class Player extends oneway.sim.Player
         this.llights = llights;
         this.rlights = rlights;
 
-		//Change the indicator once changeIndicatorTicks ticks have passed
-        if(timer%changeIndicatorTicks == 0){
+        //Change the indicator once changeIndicatorTicks ticks have passed
+        /*
+        if (timer % changeIndicatorTicks == 0){
             indicator = !indicator;
         }
-		
-		
-		
-		setLights();
+        */
 
+        setLights();
 
-		if(sameLength())
-			OppositeMovements();
+        OppositeMovements();
 
         print_lights();
 
-        avoidCollissionAndOverflow();
+        //avoidCollissionAndOverflow();
 
         timer++;
     }
@@ -114,7 +113,7 @@ public class Player extends oneway.sim.Player
         System.out.println("");
     }
 
-     private void OppositeMovements() 
+    private void OppositeMovements() 
     {
         Vector<Car> opposite = new Vector<Car>( ); // to store all cars in opposite direction as indicator
         Vector<Car> forward  = new Vector<Car>( );
@@ -125,7 +124,7 @@ public class Player extends oneway.sim.Player
             if (indicator) {
                 if (c.dir < 0)  opposite.add(new Car(c.segment, c.block, c.dir, c.startTime, nblocks));
                 else            forward.add( new Car(c.segment, c.block, c.dir, c.startTime, nblocks));
-                
+
             } else { 
                 if (c.dir < 0)  forward.add( new Car(c.segment, c.block, c.dir, c.startTime, nblocks));
                 else            opposite.add(new Car(c.segment, c.block, c.dir, c.startTime, nblocks));
@@ -185,7 +184,6 @@ public class Player extends oneway.sim.Player
             return ; 
         }
 
-        
         int fstep = forward.get(0).steps; // get the first car in the forward direction
         oneway.sim.Parking[] L = left.clone();
         oneway.sim.Parking[] R = right.clone();
@@ -197,39 +195,29 @@ public class Player extends oneway.sim.Player
             if (R[i] == null)
                 R[i] = new oneway.sim.Parking();
 
-        /*
-           r0      r1      r2 
-           ->      ->      ->
-               seg0    seg1    seg2
-            | - - - | - - - | - - - |
-           p0      p1       p2     p3
-                   <-      <-      <-
-                   l0       l1     l2  
-           */
-
-
         if (indicator) {
             for (int i=llights.length/2; i<llights.length; i++)
                 llights[i] = true;
             for (Car c : opposite) {
                 int cstep = (fstep + c.steps) / 2; // collision steps
-                int cseg = cstep / nblocks[0]; // collision segment,FIXME right now all segments are regarded as same length
+                int cseg = get_seg(cstep); // collision segment,FIXME right now all segments are regarded as same length
                 int latest_parking = cseg + 1;
                 c.latest_parking = latest_parking;
 
                 if (c.steps <= fstep) { // first forward car already passed and the current car is in parking lot
-                    int seg = c.steps / nblocks[0];
-                    llights[seg - 1] = false;
+                    int seg = get_seg(c.steps);
+                    if (seg > 0)
+                        llights[seg - 1] = false;
                     continue;
                 }
 
-                for (int i=latest_parking; i<L.length; i++) {
+                for (int i=latest_parking; i<L.length; i++) { // starting from the latest_parking to where the car come from
 
                     if (R[i].size() + L[i].size() < capacity[i]) {
                         L[i].add(0);
 
-                        int car_seg = c.steps / nblocks[0];
-                        int car_blk = c.steps % nblocks[0];
+                        int car_seg = get_seg(c.steps);
+                        int car_blk = get_blk(c.steps);
                         if (car_seg == i && car_blk == 0)
                             llights[i-1] = false;
                         break;
@@ -238,22 +226,24 @@ public class Player extends oneway.sim.Player
             }
 
             // control the left direction startpoint
-            int cstep = (fstep + nblocks[0] * nsegments + 1) / 2;
-            int cseg = cstep / nblocks[0];
-            if (cseg >= nsegments-1) {
-                llights[llights.length-1] = false; }
+            int cstep = (fstep + nblocks_sum + 1) / 2;
+            int cseg = get_seg(cstep);
+            if (cseg == nsegments-1) {
+                llights[llights.length-1] = false;
+            }
         } else {
             for (int i=0; i<rlights.length/2; i++)
                 rlights[i] = true;
             for (Car c : opposite) {
                 int cstep = (fstep + c.steps + 1) / 2; // collision steps
-                int cseg = cstep / nblocks[0]; // collision segment,FIXME right now all segments are regarded as same length
+                int cseg = get_seg(cstep); // collision segment
                 int latest_parking = cseg;
                 c.latest_parking = latest_parking;
 
                 if (c.steps >= fstep) { // first forward car already passed and the current car is in parking lot
-                    int seg = c.steps / nblocks[0];
-                    rlights[seg+1] = false;
+                    int seg = get_seg(c.steps);
+                    if (seg < rlights.length-1)
+                        rlights[seg+1] = false;
                     continue;
                 }
 
@@ -261,10 +251,10 @@ public class Player extends oneway.sim.Player
                     if (R[i].size() + L[i].size() < capacity[i]) {
                         R[i].add(0);
 
-                        int car_seg = c.steps / nblocks[0];
-                        int car_blk = c.steps % nblocks[0];
+                        int car_seg = get_seg(c.steps);
+                        int car_blk = get_blk(c.steps);
 
-                        if (car_seg == i-1 && car_blk == nblocks[0]-1)
+                        if (car_seg == i-1 && car_blk == nblocks[i-1]-1) //FIXME index
                             rlights[i] = false;
                         break;
                     }
@@ -273,11 +263,36 @@ public class Player extends oneway.sim.Player
 
             // control the right direction startpoint
             int cstep = fstep / 2;
-            int cseg = cstep / nblocks[0];
+            int cseg = get_seg(cstep);
             if (cseg == 0) {
                 rlights[0] = false;
             }
         }
+
+        /*
+           r0      r1      r2 
+           ->      ->      ->
+           seg0    seg1    seg2
+           | - - - | - - - | - - - |
+           p0      p1       p2     p3
+                   <-      <-      <-
+                   l0       l1     l2  
+         */
+
+        // take care of the following situation:
+        // opposite cars shouldn't wait until forward cars arrive at destination, which is the endpoint of the road
+        // commented out for now, becuase not sure whether there will be new forward cars appearing in the endpoint of road
+        /*
+        if (indicator) {
+            for (int i=0; i<llights.length; i++)
+                if (forward.get(forward.size()-1).seg >= i+1)
+                    llights[i] = true;
+        } else {
+            for (int i=0; i<rlights.length; i++)
+                if (forward.get(forward.size()-1).seg < i)
+                    rlights[i] = true;
+        }
+        */
 
         System.out.println("*************** forward cars******************");
         System.out.println(forward.size() + " cars moving forward");
@@ -289,6 +304,32 @@ public class Player extends oneway.sim.Player
             System.out.println(c.toString());
         System.out.println("**********************************************");
 
+    }
+
+    // get the segment number according to steps of a car
+    int get_seg(int steps) {
+        steps++;
+        int sum = 0;
+        for (int i=0; i<nblocks.length; i++) {
+            sum += nblocks[i];
+            if (sum >= steps)
+                return i; // guaranteed to execute this return
+        }
+        return nblocks.length;
+    }
+
+    // get the block number in a segment according to steps of a car
+    int get_blk(int steps) {
+        steps++;
+        int sum = 0;
+        for (int i=0; i<nblocks.length; i++) {
+            sum += nblocks[i];
+            if (sum >= steps) {
+                sum -= nblocks[i];
+                return steps - sum - 1; // guaranteed to execute this return
+            }
+        }
+        return 0;
     }
 
     //Modify the lights to avoid overflow when the indicator changes

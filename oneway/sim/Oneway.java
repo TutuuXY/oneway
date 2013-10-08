@@ -137,24 +137,12 @@ public class Oneway
             // there is a car wait to go
             // & no other car is in the way
             if (rlights[i] &&
-                right[i].size() > 0) {
-                if (segments[i][0] == null) {
-                    int start = right[i].removeFirst();
-                    MovingCar car = new MovingCar(i, 0, 1, start);
-                    segments[i][0] = car;
-                    newMovingCars.add(car);
-                }
-                else if (segments[i][0].dir > 0) {
-                    // it is a car we sent out before
-                    // we stal
-                }
-                else {
-                    // there is car coming from the opposite direction
-                    // we crash
-                    errmsg = String.format("Car crashs at (%d, %d)\n", i, i);
-                    System.err.print(errmsg);
-                    return false;
-                }
+                right[i].size() > 0 &&
+                segments[i][0] == null) {
+                int start = right[i].removeFirst();
+                MovingCar car = new MovingCar(i, 0, 1, start);
+                segments[i][0] = car;
+                newMovingCars.add(car);
             }
         }
         // left bound
@@ -164,20 +152,12 @@ public class Oneway
             // TODO: special case when nblock = 1???
             // They may crash....
             if (llights[i] && 
-                left[i+1].size() > 0) {
-                if (segments[i][nblocks[i]-1] == null) {
-                    int start = left[i+1].removeFirst();
-                    MovingCar car = new MovingCar(i, nblocks[i]-1, -1, start);
-                    segments[i][nblocks[i]-1] = car;
-                    newMovingCars.add(car);
-                }
-                else if (segments[i][nblocks[i]-1].dir < 0) {
-                }
-                else {
-                    errmsg = String.format("Car crashs at (%d, %d)\n", i, nblocks[i]-1);
-                    System.err.print(errmsg);
-                    return false;
-                }
+                left[i+1].size() > 0 &&
+                segments[i][nblocks[i]-1] == null) {
+                int start = left[i+1].removeFirst();
+                MovingCar car = new MovingCar(i, nblocks[i]-1, -1, start);
+                segments[i][nblocks[i]-1] = car;
+                newMovingCars.add(car);
             }
         }
 
@@ -738,7 +718,7 @@ public class Oneway
     {
         System.err.println("##### Configuration #####");
         System.err.println("Number of segments: " + nsegments);
-        System.err.println("Number of blocks per segment: " + nblocks);
+        System.err.println("Number of blocks per segment: " + Arrays.toString(nblocks));
         System.err.print("Parking lot capacity: ");
         for (int i = 0; i <= nsegments; ++i) {
             if (i == 0 || i == nsegments)
