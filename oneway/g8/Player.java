@@ -54,7 +54,7 @@ public class Player extends oneway.sim.Player
         indicator = true;
         timer = 0;
 
-        changeIndicatorTicks = (int)(nblocks_sum*1.3);
+        changeIndicatorTicks = (int)(nblocks_sum*1.2);
         if(changeIndicatorTicks < 5)
             changeIndicatorTicks = 5;
 
@@ -320,7 +320,7 @@ public class Player extends oneway.sim.Player
             
             for (int i=latest_parking; i<L.length-1; i++) {
                 if (R[i].size() + L[i].size() + assignedLot[i] < capacity[i]) {
-                    //L[i].add(0);
+                    L[i].add(0);
                     llights[nsegments-1] = true;
                     break;
                 }
@@ -394,7 +394,7 @@ public class Player extends oneway.sim.Player
             
             for (int i=latest_parking; i>=1; i--) {
                 if (R[i].size() + L[i].size() + assignedLot[i]< capacity[i]) {
-                    //R[i].add(0);
+                    R[i].add(0);
                     rlights[0] = true;
                     break;
                 }
