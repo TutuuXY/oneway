@@ -11,6 +11,9 @@ public class Car implements Comparable<Car> {
     public int latest_parking;
     public int actual_parking;
 	public int ID = -1; //Unique car identifier
+	public int queuePosition = 0;//Number of cars ahead of the car in the queue if the car is in a parking lot
+	public boolean isParked;
+	
 
     public Car(int seg, int blk,
                      int d, int time, int[] nblocks) {
@@ -41,6 +44,7 @@ public class Car implements Comparable<Car> {
 		else
 			this.steps = blks + this.blk;
 		this.ID = ID;
+		isParked = false;
     }
 
     public Car( boolean in_right_Parking, int ind, int[] nblocks ) {
@@ -56,8 +60,9 @@ public class Car implements Comparable<Car> {
 	
 	
 	//Modified step mechanism
-    public Car( boolean in_right_Parking, int ind, int[] nblocks, boolean indicator, int ID ) {
+    public Car( boolean in_right_Parking, int ind, int[] nblocks, boolean indicator, int ID, int queuePosition ) {
         this.seg = ind;
+		this.queuePosition = queuePosition;
 		if(indicator)
 			this.blk = -1;
 		else
@@ -72,6 +77,7 @@ public class Car implements Comparable<Car> {
 		else
 			this.steps = blks + this.blk;
 		this.ID = ID;
+		isParked = true;
     }
 	
     

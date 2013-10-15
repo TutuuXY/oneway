@@ -38,11 +38,6 @@ public class Player extends oneway.sim.Player
         // This strategy avoids car crash, but it cannot guarantee all cars
         // will be delivered in time and the parking lot is never full
 
-        System.out.println("-----------");
-        for (MovingCar car : movingCars)
-            System.out.println(car.segment + " " + car.block + " " + car.dir + " " + car.startTime);
-        System.out.println("-----------");
-
         for (int i = 0; i != nsegments; ++i) {
             llights[i] = false;
             rlights[i] = false;

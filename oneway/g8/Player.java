@@ -26,6 +26,7 @@ public class Player extends oneway.sim.Player
     private Parking[] left;
     MovingCar[] movingCars;
     private int nblocks_sum;
+	boolean useOM;
 
     //lotAssignment[p] is the number of cars moving in the direction of the indicator whose destination is parking lot p
     private int[] assignedLot;
@@ -50,15 +51,41 @@ public class Player extends oneway.sim.Player
         for (int i=0; i<nblocks.length; i++)
             nblocks_sum += nblocks[i];
 
-        indicator = false;
+        indicator = true;
         timer = 0;
 
-        changeIndicatorTicks = (int)(nblocks_sum*1.25);
+        changeIndicatorTicks = (int)(nblocks_sum*1.3);
         if(changeIndicatorTicks < 5)
             changeIndicatorTicks = 5;
 
         oppositeLot = new int[nsegments+1];
+		useOM = haveOppossiteMovement();
+		
     }
+	
+	
+	//Determines whether or not to use the opposite movement function based on the configuration of the road
+	public boolean haveOppossiteMovement(){
+	
+	
+		if(nsegments == 1)
+			return false;
+			
+		int totalCapacity = 0;
+		
+		for(int i = 1;i<capacity.length-1;i++){
+		
+			System.out.println("capacity["+i+"]:"+capacity[i]+"\n");
+			totalCapacity += capacity[i];
+		
+		}
+		
+		if(totalCapacity==0)
+			return false;
+	
+	
+		return true;
+	}
 
     //Determine if all road segments are the same
     public boolean sameLength(){
@@ -101,8 +128,8 @@ public class Player extends oneway.sim.Player
         this.llights = llights;
         this.rlights = rlights;
 
-        System.out.println("nblocks_sum:"+nblocks_sum);
-        System.out.println("changeIndicatorTicks:"+changeIndicatorTicks+"\n");
+        //System.out.println("nblocks_sum:"+nblocks_sum);
+        //System.out.println("changeIndicatorTicks:"+changeIndicatorTicks+"\n");
         
         //Change the indicator once changeIndicatorTicks ticks have passed
         if (timer%changeIndicatorTicks == 0) {
@@ -118,17 +145,22 @@ public class Player extends oneway.sim.Player
 
         assignedLot = assignedLot();
 
+        /*
         System.out.println("assignedLot:");
         for(int i = 0;i<assignedLot.length;i++){
             System.out.print(assignedLot[i]+" ");
         }
         System.out.println("");
+        */
 
         setLights();
         
         setLightAssignments(assignedLot);
         
-        OppositeMovements();
+		//System.out.println("useOM:"+useOM);
+		
+		if(useOM)
+			OppositeMovements();
 
         print_lights();
 
@@ -141,6 +173,7 @@ public class Player extends oneway.sim.Player
             System.out.print(((rlights[i])?0:1) + " ");
         System.out.print("\n  ");
         System.out.println("toleft direction lights: ");
+        System.out.print("  ");
         for (int i=0; i<llights.length; i++)
             System.out.print(((llights[i])?0:1) + " ");
         System.out.println("");
@@ -251,9 +284,11 @@ public class Player extends oneway.sim.Player
                 if (c.steps <= fstep) { // first forward car already passed and the current car is in parking lot
                     int seg = get_seg(c.steps);
                     c.actual_parking = seg;
-                    
-                    if (seg > 0)
+						
+                    if (seg > 0){
+                        L[seg].add(0);
                         llights[seg - 1] = false;
+					}
                     continue;
                 }
                 
@@ -270,6 +305,11 @@ public class Player extends oneway.sim.Player
                         break;
                     }
                 }
+            }
+
+            for (Car c : opposite) {
+                if ( llights[c.seg-1] == false && c.blk == 0 && c.actual_parking < c.seg )
+                    llights[c.seg-1] = true;
             }
             
             // control the left direction startpoint
@@ -305,8 +345,10 @@ public class Player extends oneway.sim.Player
                 if (c.steps >= fstep) { // first forward car already passed and the current car is in parking lot
                     int seg = get_seg(c.steps);
                     c.actual_parking = seg+1;
-                    if (seg < rlights.length-1)
-                        rlights[seg+1] = false;
+					if (seg < rlights.length-1) {
+						R[seg+1].add(0);
+						rlights[seg+1] = false;
+					}
                     continue;
                 }
                 
@@ -338,6 +380,11 @@ public class Player extends oneway.sim.Player
                     rlights[0] = true;
                     break;
                 }
+
+            for (Car c : opposite) {
+				if ( c.seg+1 < rlights.length && rlights[c.seg+1] == false && c.blk == nblocks[c.seg]-1 && c.actual_parking > c.seg+1 )
+                    rlights[c.seg+1] = true;
+            }
             
             // control the right direction startpoint
             int cstep = fstep / 2;
@@ -424,13 +471,21 @@ public class Player extends oneway.sim.Player
 
 
         for (int i=1; i<nsegments; i++)
-            oppositeLot[i] = L[i].size() + R[i].size() + assignedLot[i];
+            oppositeLot[i] = L[i].size() + R[i].size();
+
+        System.out.println("assignedLot:");
+        for(int i = 0;i<assignedLot.length;i++){
+            System.out.print(assignedLot[i]+" ");
+        }
+        System.out.println("");
 
 
         System.out.println("oppositeLot: ");
         for (int i=0; i<nsegments+1; i++)
             System.out.print(oppositeLot[i] + " ");
         System.out.println("");
+
+        System.out.println("indicator : " + ((indicator)? "true":"false"));
     }
     
     // get the segment number according to steps of a car
@@ -459,6 +514,8 @@ public class Player extends oneway.sim.Player
         return 0;
     }
     
+	
+	
 
     //Assign for each parking lot the number of cars moving in the direction of the indicator that should be parked there
     //on the amount of time before the indicator changes the capacity of the lots
@@ -468,16 +525,32 @@ public class Player extends oneway.sim.Player
         int carID = 0;
         Vector<Car> forward  = new Vector<Car>( );
 
-
+		//adjParking[i] == true means that a car is directly in front
+		//of parking lot i in the direction of the indicator
+		boolean [] adjParking = new boolean[nsegments+1];
+		
+		for(int i = 0;i<adjParking.length;i++){
+			adjParking[i] = false;
+		}
 
         // segment, block, dir, startTime
 
         for (MovingCar c : movingCars) {
             if (indicator) {
-                if(c.dir > 0)   forward.add( new Car(c.segment, c.block, c.dir, c.startTime, nblocks, indicator, carID));
+                if(c.dir > 0){
+					forward.add( new Car(c.segment, c.block, c.dir, c.startTime, nblocks, indicator, carID));
+					if(c.block==0) adjParking[c.segment] = true;
+				}
                 carID++;
             } else { 
-                if (c.dir < 0)  forward.add( new Car(c.segment, c.block, c.dir, c.startTime, nblocks, indicator, carID));
+                if (c.dir < 0) {
+					forward.add( new Car(c.segment, c.block, c.dir, c.startTime, nblocks, indicator, carID));
+	//				System.out.println("c.segment:"+c.segment+"\n");
+					if(c.block==nblocks[c.segment]-1){
+	//					System.out.println("car adjacted to lot:"+(c.segment+1)+"\n");
+						adjParking[c.segment+1] = true;
+					}
+				}
                 carID++;
             }
         }
@@ -494,9 +567,11 @@ public class Player extends oneway.sim.Player
                     if (right[i]==null) continue;
 
                     right_parking_num += right[i].size();
+					int queuePosition = 0;
                     for (int j=0; j<right[i].size(); j++){ 
-                        forward.add( new Car(true, i, nblocks, indicator, carID) );
+                        forward.add( new Car(true, i, nblocks, indicator, carID, queuePosition) );
                         carID++;
+						queuePosition++;
                     }
                 }
         } else {
@@ -505,9 +580,11 @@ public class Player extends oneway.sim.Player
                     if (left[i]==null) continue;
 
                     left_parking_num += left[i].size();
+					int queuePosition = 0;
                     for (int j=0; j<left[i].size(); j++){
-                        forward.add( new Car(false, i, nblocks, indicator, carID) );
+                        forward.add( new Car(false, i, nblocks, indicator, carID, queuePosition) );
                         carID++;
+						queuePosition++;
                     }
                 }
         }
@@ -525,26 +602,28 @@ public class Player extends oneway.sim.Player
         oneway.sim.Parking[] L = left.clone();
         oneway.sim.Parking[] R = right.clone();
 
-        System.out.println(forward);
+//        System.out.println(forward);
 
         //Add the cars in each parking lot going the opposite direction to the array of lots because these cars will not move
-        for(int lot = 0;lot < nsegments+1;lot++){
-            if(indicator)
-                if(L!=null&&L[lot]!=null)
-                    lotCars[lot]=L[lot].size();
-                else
-                    lotCars[lot] = 0;
+        if(timer%changeIndicatorTicks==0){
+            for(int lot = 0;lot < nsegments+1;lot++){
+                if(indicator)
+                    if(L!=null&&L[lot]!=null)
+                        lotCars[lot]=L[lot].size();
+                    else
+                        lotCars[lot] = 0;
 
-            else
-                if(R!=null&&R[lot]!=null)
-                    lotCars[lot]=R[lot].size();
                 else
-                    lotCars[lot] = 0;
+                    if(R!=null&&R[lot]!=null)
+                        lotCars[lot]=R[lot].size();
+                    else
+                        lotCars[lot] = 0;
+            }
         }
 
         //Ticks left before the indicator changes
         int ticks = changeIndicatorTicks-(timer%changeIndicatorTicks);
-        System.out.println(ticks+" ticks left \n");
+        //System.out.println(ticks+" ticks left \n");
 
         for(int i = 0;i<forward.size();i++){
 
@@ -554,36 +633,47 @@ public class Player extends oneway.sim.Player
             int step = 0;
 
             if(indicator){
-                step = c.steps+ticks;
+                step = c.steps+ticks-c.queuePosition*2;
+				
+				if(c.isParked&&adjParking[c.seg]){
+					step--;
+					//System.out.println("Decrementing possible steps because car adjacent to lot " + c.seg + "\n");
+				}
             }
             else{
-                step = c.steps-ticks;
+                step = c.steps-ticks+c.queuePosition*2;
+				if(c.isParked) System.out.println("c is parking in lot " + c.seg + "\n");
+				if(c.isParked&&adjParking[c.seg]){
+					step++;
+					//System.out.println("Decrementing possible steps because car adjacent to lot " + c.seg + "\n");
+					//System.out.println("Queue adjustment:" + (c.queuePosition*2+1) + "\n");
+				}
             }
 
             //Furthest parking lot the car can reach before the indicator changes if it does not park
             int pLot = 0;
 
-            System.out.println("Current step, Furthest possible step for car " + c.steps + " " + c.ID + ":" + step + "\n");
+            //System.out.println("Current step, Furthest possible step for car " + c.steps + " " + c.ID + ":" + step + "\n");
 
             if(indicator){
                 for(int seg = 0;seg<nsegments;seg++){
                     step = step - nblocks[seg];
-                    System.out.println(step);
+                    //System.out.println(step);
                     if(step<=0){
                         pLot = seg;
-                        System.out.println("Setting destination lot for car " + c.ID + " to " + pLot + "\n");
+                        //System.out.println("Setting destination lot for car " + c.ID + " to " + pLot + "\n");
                         break;
                     }
                     if(seg==nsegments-1&&step>0){
                         pLot = seg+1;
-                        System.out.println("Setting destination lot for car " + c.ID + " to " + pLot + "\n");
+                        //System.out.println("Setting destination lot for car " + c.ID + " to " + pLot + "\n");
                         break;
                     }
                 }
 
                 while(pLot>-1){
 
-                    if(lotCars[pLot]+1<=capacity[pLot]){
+                    if(lotCars[pLot]+1<=capacity[pLot]-oppositeLot[pLot]){
 
                         //Car c can park in parking lot pLot without causing overcapacity
                         lotCars[pLot] = lotCars[pLot]+1;
@@ -606,29 +696,36 @@ public class Player extends oneway.sim.Player
                     blockCount = blockCount + nblocks[seg];
                 }
 
-                System.out.println("blockCount:" + blockCount + "\n");
+                //System.out.println("blockCount:" + blockCount + "\n");
 
                 step = blockCount - step;
                 for(int seg = nsegments-1;seg>-1;seg--){
 
                     step = step - nblocks[seg];
-                    System.out.println("Recalculated step:" + step + "\n");
+                    //System.out.println("Recalculated step:" + step + "\n");
                     if(step <=0){
                         pLot = seg + 1;
-                        System.out.println("Setting destination lot for car " + c.ID + " to " + pLot + "\n");
+                        //System.out.println("Setting destination lot for car " + c.ID + " to " + pLot + "\n");
                         break;
                     }
                 }
 
                 while(pLot<nsegments+1){
 
-                    if(lotCars[pLot]+1<=capacity[pLot]){
+					//System.out.println("lotCars[plot]:" + lotCars[pLot] + "\n");
+				
+                    if(lotCars[pLot]+1<=capacity[pLot]-oppositeLot[pLot]){
 
                         //Car c can park in parking lot pLot without causing overcapacity
                         lotCars[pLot] = lotCars[pLot]+1;
                         lotAssignment[pLot] ++;
                         break;
                     }
+					else{
+					
+						//System.out.println("Not enough room for cars at " + pLot + "\n");
+					
+					}
 
                     pLot++;
                 }
@@ -671,15 +768,15 @@ public class Player extends oneway.sim.Player
             for(int lot = 0;lot<nsegments;lot++){
                 int toPass = 0;
 
-                System.out.println(assignedLot[lot]);
+//                System.out.println(assignedLot[lot]);
 
 
                 for(int i = lot+1;i<nsegments+1;i++){
                     toPass += assignedLot[i];
                 }
 
-                System.out.println("toPass for " + lot + ":" + toPass + "\n");
-                System.out.println("passedCars[lot]:"+passedCars[lot]+"\n");
+                //System.out.println("toPass for " + lot + ":" + toPass + "\n");
+                //System.out.println("passedCars[lot]:"+passedCars[lot]+"\n");
                 if(passedCars[lot]<toPass)
                     rlights[lot] = true;
                 else
